@@ -4,5 +4,5 @@ os:
   - linux
 
 script:
-  - go build -race -v .
-  - go test -race -cover -v ./
+  - go build -race -v ./...
+  - go test -race -cover -v ./...
