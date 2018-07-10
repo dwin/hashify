@@ -11,10 +11,6 @@ import (
 	"github.com/minio/highwayhash"
 )
 
-type BasicError struct {
-	Error string
-}
-
 func HashHighwayHash(c echo.Context) error {
 	var key []byte
 	if c.QueryParam("key") == "random" {
