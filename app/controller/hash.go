@@ -2,7 +2,6 @@ package controller
 
 import (
 	"crypto/md5"
-	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha512"
 	"encoding/hex"
@@ -53,7 +52,7 @@ func ComputeHash(c echo.Context) error {
 		h = hash
 		algorithm = "HighwayHash-256"
 		keyHex = hex.EncodeToString(key)
-	case "HIGHWAY64":
+	case "HIGHWAY-64":
 		key, err := parseHighwayHashKey(c)
 		if err != nil {
 			e := BasicError{
@@ -75,7 +74,7 @@ func ComputeHash(c echo.Context) error {
 		h = hash
 		algorithm = "HighwayHash-64"
 		keyHex = hex.EncodeToString(key)
-	case "HIGHWAY128":
+	case "HIGHWAY-128":
 		key, err := parseHighwayHashKey(c)
 		if err != nil {
 			e := BasicError{
@@ -181,17 +180,6 @@ func ComputeHash(c echo.Context) error {
 		return err
 	}
 	return c.JSONBlob(http.StatusOK, j)
-}
-
-func randKey(len int) (hexVal []byte, err error) {
-	b := make([]byte, len)
-	_, err = rand.Read(b)
-	if err != nil {
-		log.Printf("randKey - rand.Read() error: %s\n", err)
-		return
-	}
-	hexVal = b
-	return
 }
 
 func hashString(h hash.Hash, plaintext string, algorithm string) (resp []byte, err error) {
