@@ -24,7 +24,7 @@ func Router() *echo.Echo {
 	e.Pre(QueryLength)
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"localhost", "https://hashify.net"},
+		AllowOrigins: []string{"localhost", "https://hashify.net", "*"},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "X-Hashify-Key"},
 	}))
 
