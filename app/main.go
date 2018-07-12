@@ -33,8 +33,8 @@ func Router() *echo.Echo {
 	e.GET("/methods", controller.ListMethods)
 	e.GET("/keygen/:length", controller.KeyGen)
 	h := e.Group("/hash")
-	h.GET("/:algo", controller.ComputeHash)
-	h.POST("/:algo", controller.ComputeHash)
+	h.GET("/:algo/:format", controller.ComputeHash)
+	h.POST("/:algo/:format", controller.ComputeHash)
 	// MD5 Route
 	/*
 		e.POST("/md5", controller.HashMD5)

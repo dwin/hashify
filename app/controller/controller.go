@@ -7,9 +7,10 @@ type BasicError struct {
 }
 
 type HashResp struct {
-	Digest string
-	Type   string
-	Key    string
+	Digest    string
+	DigestEnc string
+	Type      string
+	Key       string
 }
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

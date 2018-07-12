@@ -4,6 +4,8 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha512"
+	"encoding/base32"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"hash"
@@ -26,8 +28,19 @@ import (
 func ComputeHash(c echo.Context) error {
 	var h hash.Hash
 	algorithm := strings.ToUpper(c.Param("algo"))
+	format := strings.ToLower(c.Param("format"))
 	var keyHex string
 
+	if len(algorithm) < 1 {
+		return c.JSONP(http.StatusNotFound, "", &BasicError{
+			Error: "Path does not match available endpoint (algorithm), see API documentation",
+		})
+	}
+	if len(format) < 1 {
+		return c.JSONP(http.StatusNotFound, "", &BasicError{
+			Error: "Path does not match available endpoint (output), see API documentation",
+		})
+	}
 	// Determine Hash Method
 	switch algorithm {
 	case "HIGHWAY":
@@ -139,7 +152,9 @@ func ComputeHash(c echo.Context) error {
 		}
 		h = hash
 	default:
-		return c.String(http.StatusNotFound, "Invalid Path")
+		return c.JSONP(http.StatusNotFound, "", &BasicError{
+			Error: "Path does not match available endpoint, see API documentation",
+		})
 	}
 
 	// Check Request Method
@@ -170,10 +185,28 @@ func ComputeHash(c echo.Context) error {
 	if c.Request().Method == http.MethodPost && c.Request().Header.Get("Content-Type") != "multipart/form-data" {
 		io.Copy(h, c.Request().Body)
 	}
+	// Get Digest in requested format
+	var digest string
+	switch format {
+	case "base32":
+		digest = base32.StdEncoding.EncodeToString(h.Sum(nil))
+	case "base64":
+		digest = base64.StdEncoding.EncodeToString(h.Sum(nil))
+	case "base64url":
+		digest = base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+	case "hex":
+		digest = hex.EncodeToString(h.Sum(nil))
+	default:
+		return c.JSONP(http.StatusNotFound, "", &BasicError{
+			Error: "Path does not match available endpoint (output), see API documentation",
+		})
+	}
+
 	j, err := json.Marshal(HashResp{
-		Digest: hex.EncodeToString(h.Sum(nil)),
-		Type:   algorithm,
-		Key:    keyHex,
+		Digest:    digest,
+		DigestEnc: format,
+		Type:      algorithm,
+		Key:       keyHex,
 	})
 	if err != nil {
 		log.Printf("json marshal hash response error: %s\n", err)
