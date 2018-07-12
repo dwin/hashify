@@ -25,4 +25,4 @@ ENTRYPOINT ["/go/bin/hashify"]
 # docker push dwin/go-hashify:0.1.0
 # docker run -d -p 1313:1313 --name hashify dwin/hashify:0.1.0
 
-# docker run -d -v ~/Docker/hashify:/etc/hashify -p 1323:1323 --name picnic dwin/hashify:0.1.0 
+# docker run -d --name api dwin/hashify

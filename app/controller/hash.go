@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -154,11 +155,13 @@ func ComputeHash(c echo.Context) error {
 	if c.Request().Header.Get("Content-Type") == "multipart/form-data" {
 		file, err := c.FormFile("file")
 		if err != nil {
+			log.Printf("get form file error: %s\n", err)
 			return err
 		}
 
 		src, err := file.Open()
 		if err != nil {
+			log.Printf("open form file error: %s\n", err)
 			return err
 		}
 		defer src.Close()
@@ -174,6 +177,7 @@ func ComputeHash(c echo.Context) error {
 		Key:    keyHex,
 	})
 	if err != nil {
+		log.Printf("json marshal hash response error: %s\n", err)
 		return err
 	}
 	return c.JSONBlob(http.StatusOK, j)
@@ -183,8 +187,18 @@ func randKey(len int) (hexVal []byte, err error) {
 	b := make([]byte, len)
 	_, err = rand.Read(b)
 	if err != nil {
+		log.Printf("randKey - rand.Read() error: %s\n", err)
 		return
 	}
 	hexVal = b
 	return
+}
+
+func hashString(h hash.Hash, plaintext string, algorithm string) (resp []byte, err error) {
+
+	return json.Marshal(HashResp{
+		Digest: hex.EncodeToString(h.Sum([]byte(plaintext))),
+		Type:   algorithm,
+		Key:    "",
+	})
 }
