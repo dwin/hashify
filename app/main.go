@@ -31,6 +31,7 @@ func Router() *echo.Echo {
 	// Routes
 	e.GET("/status", controller.GetStatus)
 	e.GET("/methods", controller.ListMethods)
+	e.GET("/keygen/:length", controller.KeyGen)
 	h := e.Group("/hash")
 	h.GET("/:algo", controller.ComputeHash)
 	h.POST("/:algo", controller.ComputeHash)
