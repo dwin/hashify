@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -162,12 +161,41 @@ func HashHighwayHash128(c echo.Context) error {
 	return c.JSONBlob(http.StatusOK, j)
 }
 
-func randKey(len int) (hexVal []byte, err error) {
-	b := make([]byte, len)
-	_, err = rand.Read(b)
-	if err != nil {
-		return
+// TODO: Obtain header key value does not work
+func parseHighwayHashKey(c echo.Context) (key []byte, err error) {
+	if c.Request().Method == http.MethodPost {
+		fmt.Println("parsing post")
+		if c.Request().Header.Get("X-Hashify-Key") == "random" {
+			// Generate random key if Header passed with value "random"
+			k, err := randKey(32)
+			if err != nil {
+				return nil, err
+			}
+			return k, err
+		} else {
+			k, err := hex.DecodeString(c.Request().Header.Get("X-Hashify-Key"))
+			if err != nil {
+				return nil, err
+			}
+			return k, err
+		}
 	}
-	hexVal = b
+	// If GET
+	fmt.Println("parsing query")
+	if c.QueryParam("key") == "random" {
+		k, err := randKey(32)
+		if err != nil {
+			return nil, err
+		}
+		key = k
+
+	} else {
+		k, err := hex.DecodeString(c.QueryParam("key"))
+		if err != nil {
+			return nil, err
+		}
+		key = k
+
+	}
 	return
 }

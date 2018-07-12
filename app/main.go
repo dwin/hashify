@@ -23,8 +23,14 @@ func Router() *echo.Echo {
 	// Limit Querystring length for "value"
 	e.Pre(QueryLength)
 
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"localhost", "*"},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
+
 	// Routes
 	e.GET("/status", controller.GetStatus)
+	e.GET("/methods", controller.ListMethods)
 	h := e.Group("/hash")
 	h.GET("/:algo", controller.ComputeHash)
 	h.POST("/:algo", controller.ComputeHash)

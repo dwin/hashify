@@ -2,9 +2,11 @@ package controller
 
 import (
 	"crypto/md5"
+	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha512"
 	"encoding/hex"
+	"fmt"
 	"hash"
 	"io"
 	"net/http"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/labstack/echo"
 	blake2bminio "github.com/minio/blake2b-simd"
+	"github.com/minio/highwayhash"
 	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/md4"
@@ -23,9 +26,76 @@ import (
 func ComputeHash(c echo.Context) error {
 	var h hash.Hash
 	algorithm := strings.ToUpper(c.Param("algo"))
+	var keyHex string
 
 	// Determine Hash Method
 	switch algorithm {
+	case "HIGHWAY":
+		key, err := parseHighwayHashKey(c)
+		if err != nil {
+			e := BasicError{
+				Error: "Invalid Hex Value for parameter \"key\", must provide key as query param or header \"X-Hashify-Key\"",
+			}
+			return c.JSON(http.StatusBadRequest, e)
+		}
+		// Check Key Length
+		if len(key) != 32 {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error":  "HighwayHash key parameter must be 32 bytes",
+				"length": fmt.Sprintf("%v", len(key)),
+			})
+		}
+		hash, err := highwayhash.New(key)
+		if err != nil {
+			return err
+		}
+		h = hash
+		algorithm = "HighwayHash-256"
+		keyHex = hex.EncodeToString(key)
+	case "HIGHWAY64":
+		key, err := parseHighwayHashKey(c)
+		if err != nil {
+			e := BasicError{
+				Error: "Invalid Hex Value for parameter \"key\", must provide key as query param or header \"X-Hashify-Key\"",
+			}
+			return c.JSON(http.StatusBadRequest, e)
+		}
+		// Check Key Length
+		if len(key) != 32 {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error":  "HighwayHash key parameter must be 32 bytes",
+				"length": fmt.Sprintf("%v", len(key)),
+			})
+		}
+		hash, err := highwayhash.New(key)
+		if err != nil {
+			return err
+		}
+		h = hash
+		algorithm = "HighwayHash-64"
+		keyHex = hex.EncodeToString(key)
+	case "HIGHWAY128":
+		key, err := parseHighwayHashKey(c)
+		if err != nil {
+			e := BasicError{
+				Error: "Invalid Hex Value for parameter \"key\", must provide key as query param or header \"X-Hashify-Key\"",
+			}
+			return c.JSON(http.StatusBadRequest, e)
+		}
+		// Check Key Length
+		if len(key) != 32 {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error":  "HighwayHash key parameter must be 32 bytes",
+				"length": fmt.Sprintf("%v", len(key)),
+			})
+		}
+		hash, err := highwayhash.New(key)
+		if err != nil {
+			return err
+		}
+		h = hash
+		algorithm = "HighwayHash-128"
+		keyHex = hex.EncodeToString(key)
 	case "MD4":
 		h = md4.New()
 	case "MD5":
@@ -80,15 +150,41 @@ func ComputeHash(c echo.Context) error {
 			return err
 		}
 	}
-	if c.Request().Method == http.MethodPost {
+	// Handle Form file
+	if c.Request().Header.Get("Content-Type") == "multipart/form-data" {
+		file, err := c.FormFile("file")
+		if err != nil {
+			return err
+		}
+
+		src, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer src.Close()
+		io.Copy(h, src)
+	}
+
+	if c.Request().Method == http.MethodPost && c.Request().Header.Get("Content-Type") != "multipart/form-data" {
 		io.Copy(h, c.Request().Body)
 	}
 	j, err := json.Marshal(HashResp{
 		Digest: hex.EncodeToString(h.Sum(nil)),
 		Type:   algorithm,
+		Key:    keyHex,
 	})
 	if err != nil {
 		return err
 	}
 	return c.JSONBlob(http.StatusOK, j)
+}
+
+func randKey(len int) (hexVal []byte, err error) {
+	b := make([]byte, len)
+	_, err = rand.Read(b)
+	if err != nil {
+		return
+	}
+	hexVal = b
+	return
 }
