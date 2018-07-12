@@ -164,7 +164,6 @@ func HashHighwayHash128(c echo.Context) error {
 // TODO: Obtain header key value does not work
 func parseHighwayHashKey(c echo.Context) (key []byte, err error) {
 	if c.Request().Method == http.MethodPost {
-		fmt.Println("parsing post")
 		if c.Request().Header.Get("X-Hashify-Key") == "random" {
 			// Generate random key if Header passed with value "random"
 			k, err := randKey(32)
@@ -181,7 +180,6 @@ func parseHighwayHashKey(c echo.Context) (key []byte, err error) {
 		}
 	}
 	// If GET
-	fmt.Println("parsing query")
 	if c.QueryParam("key") == "random" {
 		k, err := randKey(32)
 		if err != nil {
