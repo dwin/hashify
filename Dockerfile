@@ -21,6 +21,8 @@ COPY --from=builder /go/bin/hashify /go/bin/hashify
 EXPOSE 1313
 ENTRYPOINT ["/go/bin/hashify"]
 
-# docker build . -t dwin/go-hashify:0.1.0
+# docker build . -t dwin/hashify:0.1.0
 # docker push dwin/go-hashify:0.1.0
+# docker run -d -p 1313:1313 --name hashify dwin/hashify:0.1.0
+
 # docker run -d -v ~/Docker/hashify:/etc/hashify -p 1323:1323 --name picnic dwin/hashify:0.1.0 
