@@ -29,6 +29,7 @@ func Router() *echo.Echo {
 	}))
 
 	// Routes
+	e.GET("/", controller.GetIndex)
 	e.GET("/status", controller.GetStatus)
 	e.GET("/methods", controller.ListMethods)
 	e.GET("/keygen/:length", controller.KeyGen)
