@@ -25,6 +25,10 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+type errorMsg struct {
+	Error string
+}
+
 func ComputeHash(c echo.Context) error {
 	var h hash.Hash
 	algorithm := strings.ToUpper(c.Param("algo"))
@@ -166,11 +170,14 @@ func ComputeHash(c echo.Context) error {
 		}
 	}
 	// Handle Form file
-	if c.Request().Header.Get("Content-Type") == "multipart/form-data" {
+	if c.Request().Header.Get("Content-Type") == "multipart/form-data" || c.Request().Header.Get("X-Hashify-Process") == "multipart/form-data" {
 		file, err := c.FormFile("file")
 		if err != nil {
 			log.Printf("get form file error: %s\n", err)
-			return err
+			eMsg := errorMsg{
+				Error: "File object must be named 'file' when using client headers of ('Content-Type' || 'X-Hashify-Process' = 'multipart/form-data')",
+			}
+			return c.JSONPretty(http.StatusBadRequest, eMsg, " ")
 		}
 
 		src, err := file.Open()
