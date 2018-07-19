@@ -36,7 +36,7 @@ func Router() *echo.Echo {
 	e.GET("/methods", controller.ListMethods)
 	e.GET("/keygen/:length", controller.KeyGen)
 	// Limit Request Body to 10 MB
-	limit := e.Group("/", middleware.BodyLimit("10M"))
+	limit := e.Group("", middleware.BodyLimit("10M"))
 	h := limit.Group("/hash")
 	h.GET("/:algo/:format", controller.ComputeHash)
 	h.POST("/:algo/:format", controller.ComputeHash)

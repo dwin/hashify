@@ -38,6 +38,7 @@ func KeyGen(c echo.Context) error {
 		KeyHex: hex.EncodeToString(k),
 		Length: len,
 	})
+	keysGenerated++
 	return c.JSONBlob(http.StatusOK, j)
 }
 

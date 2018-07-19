@@ -219,6 +219,7 @@ func ComputeHash(c echo.Context) error {
 		log.Printf("json marshal hash response error: %s\n", err)
 		return err
 	}
+	hashesGenerated++
 	return c.JSONBlob(http.StatusOK, j)
 }
 
