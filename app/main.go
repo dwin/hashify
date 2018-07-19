@@ -12,13 +12,15 @@ import (
 func main() {
 	e := Router()
 	controller.StartTime = time.Now()
+	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+		StackSize: 1 << 10, // 1 KB
+	}))
 	e.Logger.Fatal(e.Start(":1313"))
 }
 
 func Router() *echo.Echo {
 	e := echo.New()
 
-	// Limit Request Body to 10 MB
 	e.Pre(middleware.BodyLimit("10M"))
 	// Limit Querystring length for "value"
 	e.Pre(QueryLength)
@@ -33,7 +35,9 @@ func Router() *echo.Echo {
 	e.GET("/status", controller.GetStatus)
 	e.GET("/methods", controller.ListMethods)
 	e.GET("/keygen/:length", controller.KeyGen)
-	h := e.Group("/hash")
+	// Limit Request Body to 10 MB
+	limit := e.Group("/", middleware.BodyLimit("10M"))
+	h := limit.Group("/hash")
 	h.GET("/:algo/:format", controller.ComputeHash)
 	h.POST("/:algo/:format", controller.ComputeHash)
 	// MD5 Route
