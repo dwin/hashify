@@ -18,8 +18,8 @@ func main() {
 func Router() *echo.Echo {
 	e := echo.New()
 
-	// Limit Request Body to 50 MB
-	e.Pre(middleware.BodyLimit("50M"))
+	// Limit Request Body to 10 MB
+	e.Pre(middleware.BodyLimit("10M"))
 	// Limit Querystring length for "value"
 	e.Pre(QueryLength)
 
