@@ -1,7 +1,7 @@
 # STEP 1 build executable binary
 FROM golang:alpine as builder
 
-LABEL maintainer "Darwin Smith II <dwin@dlsmi.com>"
+LABEL maintainer "Darwin Smith II <172265+dwin@users.noreply.github.com>"
 LABEL app_version="0.1.0" architecture="amd64"
 
 COPY /app $GOPATH/src/github.com/dwin/hashify/app
