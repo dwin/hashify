@@ -1,0 +1,8 @@
+SHELL := /usr/bin/env bash -euo pipefail -O extglob
+PROJECT=$(shell basename ${PWD})
+
+
+
+PROJECT_NAME = hashify
+PROJECT_SHORT_NAME = hashify
+PROJECT_DIR=$(shell pwd)
