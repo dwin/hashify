@@ -25,6 +25,9 @@ type ServerInterface interface {
 	// Get Hash Digest of Input using given algorithm and digest encoding format
 	// (GET /hash/{algorithm}/{digestFormat})
 	GetHashAlgorithmDigestFormat(ctx echo.Context, algorithm DigestAlgorithms, digestFormat DigestFormats, params GetHashAlgorithmDigestFormatParams) error
+	// Status Check
+	// (GET /status)
+	GetStatus(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -67,25 +70,17 @@ func (w *ServerInterfaceWrapper) GetHashAlgorithmDigestFormat(ctx echo.Context) 
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter key: %s", err))
 	}
 
-	headers := ctx.Request().Header
-	// ------------- Optional header parameter "x-hashify-key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("x-hashify-key")]; found {
-		var XHashifyKey string
-		n := len(valueList)
-		if n != 1 {
-			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for x-hashify-key, got %d", n))
-		}
-
-		err = runtime.BindStyledParameterWithLocation("simple", false, "x-hashify-key", runtime.ParamLocationHeader, valueList[0], &XHashifyKey)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter x-hashify-key: %s", err))
-		}
-
-		params.XHashifyKey = &XHashifyKey
-	}
-
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetHashAlgorithmDigestFormat(ctx, algorithm, digestFormat, params)
+	return err
+}
+
+// GetStatus converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStatus(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetStatus(ctx)
 	return err
 }
 
@@ -118,6 +113,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.GET(baseURL+"/hash/:algorithm/:digestFormat", wrapper.GetHashAlgorithmDigestFormat)
+	router.GET(baseURL+"/status", wrapper.GetStatus)
 
 }
 
@@ -158,11 +154,35 @@ func (response GetHashAlgorithmDigestFormat404JSONResponse) VisitGetHashAlgorith
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetStatusRequestObject struct {
+}
+
+type GetStatusResponseObject interface {
+	VisitGetStatusResponse(w http.ResponseWriter) error
+}
+
+type GetStatus200JSONResponse struct {
+	HashesGenerated float32 `json:"hashesGenerated"`
+	KeysGenerated   float32 `json:"keysGenerated"`
+	Status          string  `json:"status"`
+	Uptime          string  `json:"uptime"`
+}
+
+func (response GetStatus200JSONResponse) VisitGetStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get Hash Digest of Input using given algorithm and digest encoding format
 	// (GET /hash/{algorithm}/{digestFormat})
 	GetHashAlgorithmDigestFormat(ctx context.Context, request GetHashAlgorithmDigestFormatRequestObject) (GetHashAlgorithmDigestFormatResponseObject, error)
+	// Status Check
+	// (GET /status)
+	GetStatus(ctx context.Context, request GetStatusRequestObject) (GetStatusResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx echo.Context, args interface{}) (interface{}, error)
@@ -205,25 +225,49 @@ func (sh *strictHandler) GetHashAlgorithmDigestFormat(ctx echo.Context, algorith
 	return nil
 }
 
+// GetStatus operation middleware
+func (sh *strictHandler) GetStatus(ctx echo.Context) error {
+	var request GetStatusRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStatus(ctx.Request().Context(), request.(GetStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStatus")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStatusResponseObject); ok {
+		return validResponse.VisitGetStatusResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("Unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xW3Y7bNhN9FWK+D9gbeWVJ1npXd5tkExv5QVEHbYFgL2hxLDErkQpJORYMv3tBUrbl",
-	"rt1u0KLojU0Oh5zDM3OG2kIu60YKFEZDtgWdl1hTN3zDC9Tmviqk4qasnQ1FW0P2BV5V9Anj5ShObyA4",
-	"zJLbyWCWRvFhpkdRfDuY+X0zXpTfaTejuhzdTP5g8BuGFr/p45uJ+00hgMXsPvJ/fm0xu/cYFrN7H94P",
-	"Rsfl4fDgmziwjwGYrkHIQBvFRQG7oCfhrVQ19QQx1LnijeFSQAYWF2HOh6DIJeOiICvnDcGBrSXVmFg0",
-	"duAu6getqiCAEjc2NG5o3VQ2ujWcgfKglFQ/o26k0PhaCoPCWESNkg0qw9Hhc17PgTozqVFrWiAMo83F",
-	"mlackRluyC+0atHiJw1VtEaDilw9YXcVkLrVhjRKrjlD8oQdoZp8a1F13pVIRUqkzG74bWRp4atu9B67",
-	"q+dX2R0scvkVc2Mvt2jzHLX+y+v5fFxIhF8kXBBTYp8GovBbi9ogC0hNTV7aDHnHB5HDxZTbxWwL/1e4",
-	"ggz+Fx5lEvYaCU9rYxfAe+zOIMPNHoqlrdXIHMOOI1GcQ/DZGV4SfKDOM7RaExcrac/KpTA0d8wJWmNP",
-	"GV915B03ZbuEAGw5ZlAa0+gsDAtnvs5lHbLvXISldw8Z13mrNZfC3bniOQqNg3M/zj+TD731pYcuK7kM",
-	"a8pF+GH++uHT4sEebbiphkDvf5pDAGtU2jMbXY+vx9ZRNihowyGDxJkCaKgpXb24COGW7nnahVs2SNvO",
-	"+hToaLFlRm3S5gwyeIfGxj0QPEy2C9DrQ0P2ZXsi3qqSv0pVMbDkQwZOJRDs6VlbjUEAti65QgaZUS0G",
-	"fee1QJ7J5cdL6ognvrmN6TiKaHqXjJMEaRKxaZrQeLlKWMSmN3c4nS7zNJ7GaZzEdxTTKKI0mo7ZJJqm",
-	"6YVbPKGd/Mcx+4Z0BL0Z9fU2egF8d4Kto+P+QxX9afp+VLVnQ7HTcvs70Q4NavdoD/IN1okjHo/3raFv",
-	"trRpKp47FYRftU3c9oWxLjRw14NOK6H3JHsoVsGTfxDJ2XfyDI5XlO0fBw9h8q9D+CQNeStbwVz31m1d",
-	"U9X55kOGL5pckbloWkNabZ+vgq9RkEM1EirYpY8QF1SjWu871Wk/pg2/7jVxLdDA7nH3ewAAAP//oms+",
-	"+RIKAAA=",
+	"H4sIAAAAAAAC/7xWTW/bOBP+KwTfF8hFtizJshPd0jSNjfRjsS52FyhyoMWxxFoiVZJyIxj+7wuSsiwn",
+	"djZBF3tJyNEM55l55sNbnIqyEhy4VjjZYpXmUBJ7fM8yUPq6yIRkOi+tDHhd4uQbfleQNYTLQRhPsNfd",
+	"ostx7xYHYXdTgyC87N2c3Yxl+U/SzIjKB5PxE4Ez6Euc0af3Y/s3xh5ezK4D9899W8yuHYbF7Nq5d4fB",
+	"4XP/2OlGFuyDh3VTAU6w0pLxDO+8NgkfhCyJSxAFlUpWaSY4TrDBhajVQcBTQRnP0MpqY6/L1pIoiAwa",
+	"c7CBukMtC+zhHB6Na3gkZVUY70ZwAsqtlEL+DqoSXMGN4Bq4NogqKSqQmoHFZ7WeA7ViVIJSJAPc9zbn",
+	"G1IwimbwiP4gRQ0GP6qIJCVokOhiDc2Fh8paaVRJsWEU0BoaRBT6UYNsnCoSEuVAqDH4a2DSwlbN4B6a",
+	"i+eh7DqJWH6HVJvgFnWaglL/GJ7j4wwR7iNiHOkcWhqQhB81KA3UQyXRaW4Ycoq3PMVnKTcfky3+v4QV",
+	"TvD//EOb+G2P+Me1sfPwPTQnkMHjHopJW62A2gzbHPHsFIKvVvAa573uNGk1sTIJ1BRdm6l+PO3LDujD",
+	"MxbMC4yvhHGdCq5JahPNSQlthtmqQXdM5/USe9hUb4JzrSuV+H5mxcNUlD79ybifO3WfMpXWSjHBbYoK",
+	"lgJX0Hv30/wr+thKX/voshBLvySM+x/nN7efF7fmac100Qd6/dsce3gDUjkiguFoODKKogJOKoYTHFmR",
+	"hyuic1te1oO/Jfu07vwt7bG8MzoZ2LSYqiSG4znFCb4Dbfx2fPRrwzpo20nh5Nv2qNeLQvwpZEGxST5O",
+	"sG0q7O3TszEtifvUalmD1w5qA+RZd729Ag94wsllSEZBQOKraBRFQKKATuOIhMtVRAM6nVzBdLpM43Aa",
+	"xmEUXhGIg4CQYDqi42Aax2eiWIO5vIjZmhkiDlYdDS/G/9YuOemKHvP1K966gbB7MA+5gWarKxyN9r3V",
+	"DjdSVQVLbRn535Vha/tKX2cGpm3iY/pbTbSHYlpg/C8iObmXTuB4R+h+GDsI4/8cwmeh0QdRc2qnparL",
+	"ksjGdS/qbxCxQnNe1RrVyqyLjG2Ao64aEeH03NI37/pKE12rl2bFwmn8Yn0cr0YzukDdATe+TOn25sx0",
+	"dDW5iruJz+tyCdKwsIbmrSaH6A5j48v9qT1WV5qVcKw5DfNxOZ4Mp1EcjYJJGKiTPxD6m+xpYE9Rd5A6",
+	"j6d325O2ALlhKaAv90+KwXGDbnJI185QgdzsR/fxgiIVG7ZLachB493D7u8AAAD//1I8JoFSCwAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

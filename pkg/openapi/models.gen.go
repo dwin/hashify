@@ -48,14 +48,14 @@ type ErrorResponseContent struct {
 // SuccessResponseContent defines model for SuccessResponseContent.
 type SuccessResponseContent struct {
 	// Digest Hash Digest in the format requested, matching DigestEnc
-	Digest *string `json:"Digest,omitempty"`
+	Digest string `json:"Digest"`
 
 	// DigestEnc Hash digest encoding format
-	DigestEnc *DigestFormats `json:"DigestEnc,omitempty"`
+	DigestEnc DigestFormats `json:"DigestEnc"`
 
 	// Key Hex format key used for Hashing
-	Key  *string           `json:"Key,omitempty"`
-	Type *DigestAlgorithms `json:"Type,omitempty"`
+	Key  string           `json:"Key"`
+	Type DigestAlgorithms `json:"Type"`
 }
 
 // GetHashAlgorithmDigestFormatParams defines parameters for GetHashAlgorithmDigestFormat.
@@ -64,7 +64,4 @@ type GetHashAlgorithmDigestFormatParams struct {
 
 	// Key Hex format key used for Hashing
 	Key *string `form:"key,omitempty" json:"key,omitempty"`
-
-	// XHashifyKey Hex format key used for Hashing
-	XHashifyKey *string `json:"x-hashify-key,omitempty"`
 }

@@ -55,6 +55,11 @@ components:
         Key:
           type: string
           description: Hex format key used for Hashing
+      required:
+        - Digest
+        - DigestEnc
+        - Type
+        - Key
     ErrorResponseContent:
       type: object
       properties:
@@ -63,6 +68,34 @@ components:
           description: Error message
           example: "Invalid Hex Value for parameter 'key', must provide key as query param or header 'X-Hashify-Key'"
 paths:
+  /status:
+    get:
+      summary: Status Check
+      responses:
+        '200':
+          description: Service OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hashesGenerated:
+                    type: number
+                    example: 709695
+                  keysGenerated:
+                    type: number
+                    example: 709695
+                  status:
+                    type: string
+                    example: OK
+                  uptime:
+                    type: string
+                    example: "72h4m46.735301621s"
+                required:
+                  - hashesGenerated
+                  - keysGenerated
+                  - status
+                  - uptime
   /hash/{algorithm}/{digestFormat}:
     get:
       summary: Get Hash Digest of Input using given algorithm and digest encoding format
@@ -75,12 +108,6 @@ paths:
           required: true
         - name: key
           in: query
-          description: Hex format key used for Hashing
-          schema:
-            type: string
-          example: 2682a011a593033ea31d753a2bf3d1d769e77bc527252329ae511aa170d41755
-        - name: x-hashify-key
-          in: header
           description: Hex format key used for Hashing
           schema:
             type: string
