@@ -24,7 +24,13 @@ import (
 type ServerInterface interface {
 	// Get Hash Digest of Input using given algorithm and digest encoding format
 	// (GET /hash/{algorithm}/{digestFormat})
-	GetHashAlgorithmDigestFormat(ctx echo.Context, algorithm DigestAlgorithms, digestFormat DigestFormats, params GetHashAlgorithmDigestFormatParams) error
+	GetHashAlgorithmDigestFormat(ctx echo.Context, algorithm HashAlgorithmName, digestFormat DigestFormats, params GetHashAlgorithmDigestFormatParams) error
+	// Hash Key Generator
+	// (GET /keygen/{keyLength})
+	GetKeygenKeyLength(ctx echo.Context, keyLength int) error
+	// List Hashing Algorithms
+	// (GET /methods)
+	GetMethods(ctx echo.Context) error
 	// Status Check
 	// (GET /status)
 	GetStatus(ctx echo.Context) error
@@ -39,7 +45,7 @@ type ServerInterfaceWrapper struct {
 func (w *ServerInterfaceWrapper) GetHashAlgorithmDigestFormat(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "algorithm" -------------
-	var algorithm DigestAlgorithms
+	var algorithm HashAlgorithmName
 
 	err = runtime.BindStyledParameterWithLocation("simple", false, "algorithm", runtime.ParamLocationPath, ctx.Param("algorithm"), &algorithm)
 	if err != nil {
@@ -72,6 +78,31 @@ func (w *ServerInterfaceWrapper) GetHashAlgorithmDigestFormat(ctx echo.Context) 
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetHashAlgorithmDigestFormat(ctx, algorithm, digestFormat, params)
+	return err
+}
+
+// GetKeygenKeyLength converts echo context to params.
+func (w *ServerInterfaceWrapper) GetKeygenKeyLength(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "keyLength" -------------
+	var keyLength int
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "keyLength", runtime.ParamLocationPath, ctx.Param("keyLength"), &keyLength)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter keyLength: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetKeygenKeyLength(ctx, keyLength)
+	return err
+}
+
+// GetMethods converts echo context to params.
+func (w *ServerInterfaceWrapper) GetMethods(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetMethods(ctx)
 	return err
 }
 
@@ -113,13 +144,15 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.GET(baseURL+"/hash/:algorithm/:digestFormat", wrapper.GetHashAlgorithmDigestFormat)
+	router.GET(baseURL+"/keygen/:keyLength", wrapper.GetKeygenKeyLength)
+	router.GET(baseURL+"/methods", wrapper.GetMethods)
 	router.GET(baseURL+"/status", wrapper.GetStatus)
 
 }
 
 type GetHashAlgorithmDigestFormatRequestObject struct {
-	Algorithm    DigestAlgorithms `json:"algorithm"`
-	DigestFormat DigestFormats    `json:"digestFormat"`
+	Algorithm    HashAlgorithmName `json:"algorithm"`
+	DigestFormat DigestFormats     `json:"digestFormat"`
 	Params       GetHashAlgorithmDigestFormatParams
 }
 
@@ -154,6 +187,80 @@ func (response GetHashAlgorithmDigestFormat404JSONResponse) VisitGetHashAlgorith
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetHashAlgorithmDigestFormat500JSONResponse ErrorResponseContent
+
+func (response GetHashAlgorithmDigestFormat500JSONResponse) VisitGetHashAlgorithmDigestFormatResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKeygenKeyLengthRequestObject struct {
+	KeyLength int `json:"keyLength"`
+}
+
+type GetKeygenKeyLengthResponseObject interface {
+	VisitGetKeygenKeyLengthResponse(w http.ResponseWriter) error
+}
+
+type GetKeygenKeyLength200JSONResponse struct {
+	// KeyHex Hex format key
+	KeyHex string `json:"KeyHex"`
+
+	// Length Length of key in bytes
+	Length int `json:"Length"`
+}
+
+func (response GetKeygenKeyLength200JSONResponse) VisitGetKeygenKeyLengthResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKeygenKeyLength400JSONResponse ErrorResponseContent
+
+func (response GetKeygenKeyLength400JSONResponse) VisitGetKeygenKeyLengthResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKeygenKeyLength500JSONResponse ErrorResponseContent
+
+func (response GetKeygenKeyLength500JSONResponse) VisitGetKeygenKeyLengthResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetMethodsRequestObject struct {
+}
+
+type GetMethodsResponseObject interface {
+	VisitGetMethodsResponse(w http.ResponseWriter) error
+}
+
+type GetMethods200ResponseHeaders struct {
+	ContentType string
+}
+
+type GetMethods200JSONResponse struct {
+	Body    []HashAlgorithm
+	Headers GetMethods200ResponseHeaders
+}
+
+func (response GetMethods200JSONResponse) VisitGetMethodsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", fmt.Sprint(response.Headers.ContentType))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 type GetStatusRequestObject struct {
 }
 
@@ -162,10 +269,10 @@ type GetStatusResponseObject interface {
 }
 
 type GetStatus200JSONResponse struct {
-	HashesGenerated float32 `json:"hashesGenerated"`
-	KeysGenerated   float32 `json:"keysGenerated"`
-	Status          string  `json:"status"`
-	Uptime          string  `json:"uptime"`
+	HashesGenerated int64  `json:"hashesGenerated"`
+	KeysGenerated   int64  `json:"keysGenerated"`
+	Status          string `json:"status"`
+	Uptime          string `json:"uptime"`
 }
 
 func (response GetStatus200JSONResponse) VisitGetStatusResponse(w http.ResponseWriter) error {
@@ -180,6 +287,12 @@ type StrictServerInterface interface {
 	// Get Hash Digest of Input using given algorithm and digest encoding format
 	// (GET /hash/{algorithm}/{digestFormat})
 	GetHashAlgorithmDigestFormat(ctx context.Context, request GetHashAlgorithmDigestFormatRequestObject) (GetHashAlgorithmDigestFormatResponseObject, error)
+	// Hash Key Generator
+	// (GET /keygen/{keyLength})
+	GetKeygenKeyLength(ctx context.Context, request GetKeygenKeyLengthRequestObject) (GetKeygenKeyLengthResponseObject, error)
+	// List Hashing Algorithms
+	// (GET /methods)
+	GetMethods(ctx context.Context, request GetMethodsRequestObject) (GetMethodsResponseObject, error)
 	// Status Check
 	// (GET /status)
 	GetStatus(ctx context.Context, request GetStatusRequestObject) (GetStatusResponseObject, error)
@@ -199,7 +312,7 @@ type strictHandler struct {
 }
 
 // GetHashAlgorithmDigestFormat operation middleware
-func (sh *strictHandler) GetHashAlgorithmDigestFormat(ctx echo.Context, algorithm DigestAlgorithms, digestFormat DigestFormats, params GetHashAlgorithmDigestFormatParams) error {
+func (sh *strictHandler) GetHashAlgorithmDigestFormat(ctx echo.Context, algorithm HashAlgorithmName, digestFormat DigestFormats, params GetHashAlgorithmDigestFormatParams) error {
 	var request GetHashAlgorithmDigestFormatRequestObject
 
 	request.Algorithm = algorithm
@@ -219,6 +332,54 @@ func (sh *strictHandler) GetHashAlgorithmDigestFormat(ctx echo.Context, algorith
 		return err
 	} else if validResponse, ok := response.(GetHashAlgorithmDigestFormatResponseObject); ok {
 		return validResponse.VisitGetHashAlgorithmDigestFormatResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("Unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetKeygenKeyLength operation middleware
+func (sh *strictHandler) GetKeygenKeyLength(ctx echo.Context, keyLength int) error {
+	var request GetKeygenKeyLengthRequestObject
+
+	request.KeyLength = keyLength
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetKeygenKeyLength(ctx.Request().Context(), request.(GetKeygenKeyLengthRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetKeygenKeyLength")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetKeygenKeyLengthResponseObject); ok {
+		return validResponse.VisitGetKeygenKeyLengthResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("Unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetMethods operation middleware
+func (sh *strictHandler) GetMethods(ctx echo.Context) error {
+	var request GetMethodsRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMethods(ctx.Request().Context(), request.(GetMethodsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMethods")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetMethodsResponseObject); ok {
+		return validResponse.VisitGetMethodsResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("Unexpected response type: %T", response)
 	}
@@ -251,23 +412,34 @@ func (sh *strictHandler) GetStatus(ctx echo.Context) error {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

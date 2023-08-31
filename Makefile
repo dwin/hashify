@@ -13,3 +13,6 @@ generate: mock
 .PHONY: mock
 mock:
 	go install github.com/vektra/mockery/v2@v2.20.0
+
+run:
+	go run cmd/hashify/main.go

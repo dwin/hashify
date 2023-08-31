@@ -5,18 +5,23 @@ import (
 	"net/http"
 
 	"github.com/dwin/hashify/internal/config"
+	"github.com/dwin/hashify/internal/metrics"
 	"github.com/dwin/hashify/pkg/openapi"
 	"github.com/labstack/echo/v4"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog/log"
 )
 
 type API struct {
 	openapi.StrictServerInterface
-	config *config.Config
+	config  *config.Config
+	metrics *metrics.Collector
 }
 
-func NewHTTPAPI(c *config.Config) *API {
+func NewHTTPAPI(c *config.Config, metrics *metrics.Collector) *API {
 	return &API{
-		config: c,
+		config:  c,
+		metrics: metrics,
 	}
 }
 
@@ -36,12 +41,33 @@ func (a *API) Load() (http.Handler, error) {
 	// Setup Middlewares
 
 	// Log all requests
-	// e.Use(echomiddleware.Logger())
+	echoRouter.Use(echomiddleware.RequestLoggerWithConfig(echomiddleware.RequestLoggerConfig{
+		LogURI:      true,
+		LogStatus:   true,
+		LogError:    true,
+		LogMethod:   true,
+		LogLatency:  true,
+		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
+		LogValuesFunc: func(c echo.Context, v echomiddleware.RequestLoggerValues) error {
+			logger := log.With().
+				Str("http.request.method", v.Method).
+				Str("http.request.uri", v.URI).
+				Int("http.response.status", v.Status).
+				Dur("duration", v.Latency).
+				Logger()
+
+			if v.Error == nil {
+				logger.Info().Msg("http request.")
+			} else {
+				logger.Error().
+					Err(v.Error).
+					Msg("http request error.")
+			}
+			return nil
+		},
+	}))
 
 	strictHandler := openapi.NewStrictHandler(a, nil)
-	// Use our validation middleware to check all requests against the
-	// OpenAPI schema.
-	// echoRouter.Use(middleware.OapiRequestValidator(swagger))
 
 	openapi.RegisterHandlers(echoRouter, strictHandler)
 

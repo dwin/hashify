@@ -7,8 +7,10 @@ import (
 )
 
 func (a *API) GetStatus(ctx context.Context, request openapi.GetStatusRequestObject) (openapi.GetStatusResponseObject, error) {
-
 	return openapi.GetStatus200JSONResponse{
-		Status: "OK",
+		Status:          "OK",
+		HashesGenerated: int64(a.metrics.HashCount()),
+		KeysGenerated:   int64(a.metrics.KeyGenCount()),
+		Uptime:          a.metrics.Uptime().String(),
 	}, nil
 }

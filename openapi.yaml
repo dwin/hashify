@@ -12,7 +12,101 @@ servers:
   - url: https://api.hashify.net
 components:
   schemas:
-    DigestAlgorithms:
+    HashAlgorithm:
+      type: object
+      properties:
+        Name:
+          $ref: '#/components/schemas/HashAlgorithmName'
+          example: Blake2b-256
+        Endpoint:
+          type: string
+          format: uri
+          example: /hash/BLAKE2B-256
+        MinKeyLength:
+          type: integer
+          example: 0
+        MaxKeyLength:
+          type: integer
+          example: 0
+      required:
+        - Name
+        - Endpoint
+        - MinKeyLength
+        - MaxKeyLength
+      example:
+        - Name: Blake2b-256
+          Endpoint: /hash/BLAKE2B-256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: Blake2b-384
+          Endpoint: /hash/BLAKE2B-384
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: Blake2b-512
+          Endpoint: /hash/BLAKE2B-512
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: Blake2s-128
+          Endpoint: /hash/BLAKE2s-128
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: Blake2s-256
+          Endpoint: /hash/BLAKE2s-256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: HighwayHash-256
+          Endpoint: /hash/HIGHWAY
+          MinKeyLength: 32
+          MaxKeyLength: 0
+        - Name: HighwayHash-64
+          Endpoint: /hash/HIGHWAY-64
+          MinKeyLength: 32
+          MaxKeyLength: 0
+        - Name: HighwayHash-128
+          Endpoint: /hash/HIGHWAY-128
+          MinKeyLength: 32
+          MaxKeyLength: 0
+        - Name: MD4
+          Endpoint: /hash/MD4
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: MD5
+          Endpoint: /hash/MD5
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA1
+          Endpoint: /hash/SHA1
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA256
+          Endpoint: /hash/SHA256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA384
+          Endpoint: /hash/SHA384
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA512
+          Endpoint: /hash/SHA512
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA512-256
+          Endpoint: /hash/SHA512-256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA3-256
+          Endpoint: /hash/SHA3-256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA3-384
+          Endpoint: /hash/SHA3-384
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA3-512
+          Endpoint: /hash/SHA3-512
+          MinKeyLength: 0
+          MaxKeyLength: 0
+    HashAlgorithmName:
       type: string
       enum:
         - Blake2b-256
@@ -51,7 +145,7 @@ components:
         DigestEnc:
           $ref: '#/components/schemas/DigestFormats'
         Type:
-          $ref: '#/components/schemas/DigestAlgorithms'
+          $ref: '#/components/schemas/HashAlgorithmName'
         Key:
           type: string
           description: Hex format key used for Hashing
@@ -59,7 +153,6 @@ components:
         - Digest
         - DigestEnc
         - Type
-        - Key
     ErrorResponseContent:
       type: object
       properties:
@@ -80,11 +173,15 @@ paths:
                 type: object
                 properties:
                   hashesGenerated:
-                    type: number
+                    type: integer
+                    format: int64
                     example: 709695
+                    minimum: 0
                   keysGenerated:
-                    type: number
+                    type: integer
+                    format: int64
                     example: 709695
+                    minimum: 0
                   status:
                     type: string
                     example: OK
@@ -115,7 +212,7 @@ paths:
         - name: algorithm
           in: path
           schema:
-            $ref: '#/components/schemas/DigestAlgorithms'
+            $ref: '#/components/schemas/HashAlgorithmName'
           required: true
         - name: digestFormat
           in: path
@@ -141,8 +238,90 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponseContent'
-    
-
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseContent'
+  /methods:
+    get:
+      tags:
+        - default
+      summary: List Hashing Algorithms
+      description: >-
+        Retrieve list of hash options contains names, endpoints, and if key
+        needed
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json; charset=UTF-8
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HashAlgorithm'
+  /keygen/{keyLength}:
+    get:
+      tags:
+        - default
+      summary: Hash Key Generator
+      description: Generate Key of arbitrary length up to 256 bytes
+      parameters:
+        - name: keyLength
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 256
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  KeyHex:
+                    type: string
+                    description: Hex format key
+                    example: 6c7de554286cad9bd18fb09eab68423a9f1ab2b5928b60e82e3279c85e12ef8e
+                  Length:
+                    type: integer
+                    format: integer
+                    description: Length of key in bytes
+                    example: 32
+                    minimum: 1
+                    maximum: 256
+                required:
+                  - KeyHex
+                  - Length
+              example:
+                KeyHex: >-
+                  6c7de554286cad9bd18fb09eab68423a9f1ab2b5928b60e82e3279c85e12ef8e
+                Length: 32
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseContent'
+              example:
+                Error: "Invalid value for parameter 'keyLength', must be between 1 and 256"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseContent'
+              example:
+                Error: "Error generating key"
 
 
   # /hash/md5/hex:
@@ -169,140 +348,5 @@ paths:
   #         description: Successful response
   #         content:
   #           application/json: {}
-  # /methods:
-  #   get:
-  #     tags:
-  #       - default
-  #     summary: Methods
-  #     description: >-
-  #       Retrieve list of hash options contains names, endpoints, and if key
-  #       needed
-  #     responses:
-  #       '200':
-  #         description: OK
-  #         headers:
-  #           Access-Control-Allow-Origin:
-  #             schema:
-  #               type: string
-  #               example: '*'
-  #           Content-Encoding:
-  #             schema:
-  #               type: string
-  #               example: gzip
-  #           Content-Type:
-  #             schema:
-  #               type: string
-  #               example: application/json; charset=UTF-8
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #             example:
-  #               - Name: Blake2b-256
-  #                 Endpoint: /hash/BLAKE2B-256
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: Blake2b-384
-  #                 Endpoint: /hash/BLAKE2B-384
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: Blake2b-512
-  #                 Endpoint: /hash/BLAKE2B-512
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: Blake2s-128
-  #                 Endpoint: /hash/BLAKE2s-128
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: Blake2s-256
-  #                 Endpoint: /hash/BLAKE2s-256
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: HighwayHash-256
-  #                 Endpoint: /hash/HIGHWAY
-  #                 MinKeyLength: 32
-  #                 MaxKeyLength: 0
-  #               - Name: HighwayHash-64
-  #                 Endpoint: /hash/HIGHWAY-64
-  #                 MinKeyLength: 32
-  #                 MaxKeyLength: 0
-  #               - Name: HighwayHash-128
-  #                 Endpoint: /hash/HIGHWAY-128
-  #                 MinKeyLength: 32
-  #                 MaxKeyLength: 0
-  #               - Name: MD4
-  #                 Endpoint: /hash/MD4
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: MD5
-  #                 Endpoint: /hash/MD5
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: SHA1
-  #                 Endpoint: /hash/SHA1
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: SHA256
-  #                 Endpoint: /hash/SHA256
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: SHA384
-  #                 Endpoint: /hash/SHA384
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: SHA512
-  #                 Endpoint: /hash/SHA512
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: SHA512-256
-  #                 Endpoint: /hash/SHA512-256
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: SHA3-256
-  #                 Endpoint: /hash/SHA3-256
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: SHA3-384
-  #                 Endpoint: /hash/SHA3-384
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  #               - Name: SHA3-512
-  #                 Endpoint: /hash/SHA3-512
-  #                 MinKeyLength: 0
-  #                 MaxKeyLength: 0
-  # /keygen/{keyLength}:
-  #   get:
-  #     tags:
-  #       - default
-  #     summary: Keygen
-  #     description: Generate Key of arbitrary length up to 256 bytes
-  #     parameters:
-  #       - name: keyLength
-  #         in: path
-  #         schema:
-  #           type: string
-  #         required: true
-  #     responses:
-  #       '200':
-  #         description: OK
-  #         headers:
-  #           Access-Control-Allow-Origin:
-  #             schema:
-  #               type: string
-  #               example: '*'
-  #           Content-Encoding:
-  #             schema:
-  #               type: string
-  #               example: gzip
-  #           Content-Type:
-  #             schema:
-  #               type: string
-  #               example: application/json; charset=UTF-8
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #             example:
-  #               KeyHex: >-
-  #                 6c7de554286cad9bd18fb09eab68423a9f1ab2b5928b60e82e3279c85e12ef8e
-  #               Length: 32
+
+

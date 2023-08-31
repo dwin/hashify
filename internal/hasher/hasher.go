@@ -25,7 +25,7 @@ import (
 
 var ErrUnsupportedAlgorithmFormat = errors.New("unsupported algorithm or format")
 
-func Hash(algo openapi.DigestAlgorithms, input io.Reader, key ...byte) ([]byte, error) {
+func Hash(algo openapi.HashAlgorithmName, input io.Reader, key ...byte) ([]byte, error) {
 	var hasher hash.Hash
 	var err error
 

@@ -1,6 +1,9 @@
 package config
 
-import "github.com/caarlos0/env/v9"
+import (
+	"github.com/caarlos0/env/v9"
+	_ "github.com/joho/godotenv/autoload" // load .env file automatically
+)
 
 type Config struct {
 	AppName    string `env:"APP_NAME"`
@@ -13,5 +16,6 @@ func LoadConfig() (*Config, error) {
 	if err := env.Parse(&cfg); err != nil {
 		return nil, err
 	}
+
 	return &cfg, nil
 }
