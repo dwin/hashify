@@ -50,9 +50,9 @@ func (a *API) Load() (http.Handler, error) {
 		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
 		LogValuesFunc: func(c echo.Context, v echomiddleware.RequestLoggerValues) error {
 			logger := log.With().
-				Str("http.request.method", v.Method).
-				Str("http.request.uri", v.URI).
-				Int("http.response.status", v.Status).
+				Str("http.method", v.Method).
+				Str("http.url", v.URI).
+				Int("http.status_code", v.Status).
 				Dur("duration", v.Latency).
 				Logger()
 
@@ -61,7 +61,7 @@ func (a *API) Load() (http.Handler, error) {
 			} else {
 				logger.Error().
 					Err(v.Error).
-					Msg("http request error.")
+					Msg("http request with error.")
 			}
 			return nil
 		},
