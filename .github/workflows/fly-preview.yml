@@ -1,0 +1,31 @@
+name: Preview App
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  FLY_REGION: ord
+  FLY_ORG: personal
+
+jobs:
+  preview_app:
+    runs-on: ubuntu-latest
+
+    # Only run one deployment at a time per PR.
+    concurrency:
+      group: PR-${{ github.event.number }}
+
+    # Create a GitHub deployment environment per staging app so it shows up
+    # in the pull request UI.
+    # Does not cleanup the GH Environment Created
+    environment:
+      name: PR-${{ github.event.number }}
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deploy
+        id: deploy
+        uses: superfly/fly-pr-review-apps@1.0.0
