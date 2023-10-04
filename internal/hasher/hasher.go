@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"strings"
 
 	"github.com/dwin/hashify/pkg/openapi"
 	"github.com/minio/highwayhash"
@@ -86,7 +87,7 @@ func GetDigest(format openapi.DigestFormats, hash []byte) (string, error) {
 
 	var err error
 
-	switch format {
+	switch openapi.DigestFormats(strings.ToLower(string(format))) {
 	case openapi.Base32:
 		_, err = base32.NewEncoder(base32.StdEncoding, bb).Write(hash)
 	case openapi.Base64:

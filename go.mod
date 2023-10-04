@@ -1,6 +1,8 @@
 module github.com/dwin/hashify
 
-go 1.20
+go 1.21
+
+toolchain go1.21.0
 
 require (
 	github.com/caarlos0/env/v9 v9.0.0
