@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/dwin/hashify/internal/api"
 	"github.com/dwin/hashify/internal/config"
@@ -20,6 +22,8 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load config.")
 	}
+
+	config.ConfigureLogger()
 
 	metricsCollector := metrics.NewCollector()
 
@@ -36,12 +40,30 @@ func main() {
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		defer signal.Stop(sigCh)
 		<-sigCh
-		log.Info().Msg("received signal, stopping server.")
+		log.Info().Msg("received signal, stopping application.")
 		cancel()
 	}()
 
-	if err := server.Start(ctx); err != nil {
-		log.Fatal().Err(err).Msg("server run error.")
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		if err := metrics.RunHTTPMetricsServer(ctx, config.ListenHTTPMetrics); err != nil {
+			return fmt.Errorf("metrics server run error: %w", err)
+		}
+
+		return nil
+	})
+
+	g.Go(func() error {
+		if err := server.Start(ctx); err != nil {
+			return fmt.Errorf("server run error: %w", err)
+		}
+
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		log.Fatal().Err(err).Msg("error running servers.")
 	}
 
 	log.Info().Msg("application stopped.")

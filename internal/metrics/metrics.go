@@ -1,11 +1,19 @@
 package metrics
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
 	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog/log"
 )
+
+const serverTimeout = 10 * time.Second
 
 type Collector struct {
 	startTime      time.Time
@@ -61,4 +69,33 @@ func NewCollector() *Collector {
 	c.hashCounter.Store(0)
 	c.keyGenCounter.Store(0)
 	return c
+}
+
+func RunHTTPMetricsServer(ctx context.Context, addr string) error {
+	promHandler := promhttp.Handler()
+
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promHandler)
+
+	httpServer := http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: serverTimeout,
+		ReadTimeout:       serverTimeout,
+		WriteTimeout:      serverTimeout,
+	}
+
+	go func() {
+		<-ctx.Done()
+		httpServer.Shutdown(ctx)
+	}()
+
+	log.Info().Msgf("Starting HTTP Metrics Server on '%s'", addr)
+
+	// Start HTTP Server
+	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("http server error: %w", err)
+	}
+
+	return nil
 }

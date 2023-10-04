@@ -53,6 +53,7 @@ func (a *API) Load() (http.Handler, error) {
 				Str("http.method", v.Method).
 				Str("http.url", v.URI).
 				Int("http.status_code", v.Status).
+				Str("http.user_agent", v.UserAgent).
 				Dur("duration", v.Latency).
 				Logger()
 
