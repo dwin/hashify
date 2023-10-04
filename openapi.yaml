@@ -161,6 +161,23 @@ components:
           description: Error message
           example: "Invalid Hex Value for parameter 'key', must provide key as query param or header 'X-Hashify-Key'"
 paths:
+  /version:
+    get:
+      summary: Get API Version
+      description: Get API Version
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: 1.0.0
+                required:
+                  - version
   /status:
     get:
       summary: Status Check

@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/caarlos0/env/v9"
+	"github.com/carlmjohnson/versioninfo"
 	_ "github.com/joho/godotenv/autoload" // load .env file automatically
 	"github.com/rs/zerolog"
 )
@@ -18,6 +19,10 @@ func LoadConfig() (*Config, error) {
 	cfg := Config{}
 	if err := env.Parse(&cfg); err != nil {
 		return nil, err
+	}
+
+	if cfg.AppBuild == "" {
+		cfg.AppBuild = versioninfo.Short()
 	}
 
 	return &cfg, nil

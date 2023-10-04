@@ -34,6 +34,9 @@ type ServerInterface interface {
 	// Status Check
 	// (GET /status)
 	GetStatus(ctx echo.Context) error
+	// Get API Version
+	// (GET /version)
+	GetVersion(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -115,6 +118,15 @@ func (w *ServerInterfaceWrapper) GetStatus(ctx echo.Context) error {
 	return err
 }
 
+// GetVersion converts echo context to params.
+func (w *ServerInterfaceWrapper) GetVersion(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetVersion(ctx)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -147,6 +159,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/keygen/:keyLength", wrapper.GetKeygenKeyLength)
 	router.GET(baseURL+"/methods", wrapper.GetMethods)
 	router.GET(baseURL+"/status", wrapper.GetStatus)
+	router.GET(baseURL+"/version", wrapper.GetVersion)
 
 }
 
@@ -282,6 +295,24 @@ func (response GetStatus200JSONResponse) VisitGetStatusResponse(w http.ResponseW
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetVersionRequestObject struct {
+}
+
+type GetVersionResponseObject interface {
+	VisitGetVersionResponse(w http.ResponseWriter) error
+}
+
+type GetVersion200JSONResponse struct {
+	Version string `json:"version"`
+}
+
+func (response GetVersion200JSONResponse) VisitGetVersionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get Hash Digest of Input using given algorithm and digest encoding format
@@ -296,6 +327,9 @@ type StrictServerInterface interface {
 	// Status Check
 	// (GET /status)
 	GetStatus(ctx context.Context, request GetStatusRequestObject) (GetStatusResponseObject, error)
+	// Get API Version
+	// (GET /version)
+	GetVersion(ctx context.Context, request GetVersionRequestObject) (GetVersionResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx echo.Context, args interface{}) (interface{}, error)
@@ -409,37 +443,61 @@ func (sh *strictHandler) GetStatus(ctx echo.Context) error {
 	return nil
 }
 
+// GetVersion operation middleware
+func (sh *strictHandler) GetVersion(ctx echo.Context) error {
+	var request GetVersionRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetVersion(ctx.Request().Context(), request.(GetVersionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetVersion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetVersionResponseObject); ok {
+		return validResponse.VisitGetVersionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("Unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
