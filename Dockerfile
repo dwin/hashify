@@ -8,7 +8,10 @@ COPY . $GOPATH/src/github.com/dwin/hashify
 WORKDIR $GOPATH/src/github.com/dwin/hashify
 
 # build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /go/bin/hashify cmd/hashify/main.go
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+ENV GOARCH=amd64
+RUN go build -a -installsuffix cgo -o /go/bin/hashify ./cmd/hashify
 
 # STEP 2 build a small image
 # start from scratch
