@@ -65,7 +65,13 @@ func NewCollector() *Collector {
 			[]string{"algorithm", "digest_format"},
 		),
 	}
-	prometheus.MustRegister(c.keyGenerations, c.hashOperations)
+	collectors := []prometheus.Collector{c.keyGenerations, c.hashOperations}
+	for _, collector := range collectors {
+		if err := prometheus.Register(collector); err != nil && !errors.As(err, &prometheus.AlreadyRegisteredError{}) {
+			log.Fatal().Err(err).Msg("failed to register prometheus collector")
+		}
+	}
+
 	c.hashCounter.Store(0)
 	c.keyGenCounter.Store(0)
 	return c
