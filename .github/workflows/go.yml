@@ -19,4 +19,4 @@ jobs:
         - name: Run tests
           run: go test ./...
         - name: Build
-          run: go build -o hashify ./cmd/hashify/main.go
+          run: go build -o hashify ./cmd/hashify

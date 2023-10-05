@@ -10,6 +10,13 @@ import (
 func (a *API) GetKeygenKeyLength(ctx context.Context, request openapi.GetKeygenKeyLengthRequestObject) (openapi.GetKeygenKeyLengthResponseObject, error) {
 	keyLength := request.KeyLength
 
+	if keyLength < 1 || keyLength > 256 {
+		msg := "Key length must be between 1 and 256"
+		return openapi.GetKeygenKeyLength400JSONResponse{
+			Error: &msg,
+		}, nil
+	}
+
 	defer a.metrics.KeyGenerations(keyLength)
 
 	hexKey, err := hasher.RandomKeyHex(keyLength)
