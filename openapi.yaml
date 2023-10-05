@@ -1,0 +1,369 @@
+openapi: 3.0.0
+info:
+  title: Hashify API
+  version: 1.0.0
+  contact:
+    name: Hashify Github
+    url: https://github.com/dwin/hashify/discussions
+  license:
+    name: MIT License
+    url: https://github.com/dwin/hashify/blob/main/LICENSE
+servers:
+  - url: https://api.hashify.net
+components:
+  schemas:
+    HashAlgorithm:
+      type: object
+      properties:
+        Name:
+          $ref: '#/components/schemas/HashAlgorithmName'
+          example: Blake2b-256
+        Endpoint:
+          type: string
+          format: uri
+          example: /hash/BLAKE2B-256
+        MinKeyLength:
+          type: integer
+          example: 0
+        MaxKeyLength:
+          type: integer
+          example: 0
+      required:
+        - Name
+        - Endpoint
+        - MinKeyLength
+        - MaxKeyLength
+      example:
+        - Name: Blake2b-256
+          Endpoint: /hash/BLAKE2B-256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: Blake2b-384
+          Endpoint: /hash/BLAKE2B-384
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: Blake2b-512
+          Endpoint: /hash/BLAKE2B-512
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: Blake2s-128
+          Endpoint: /hash/BLAKE2s-128
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: Blake2s-256
+          Endpoint: /hash/BLAKE2s-256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: HighwayHash-256
+          Endpoint: /hash/HIGHWAY
+          MinKeyLength: 32
+          MaxKeyLength: 0
+        - Name: HighwayHash-64
+          Endpoint: /hash/HIGHWAY-64
+          MinKeyLength: 32
+          MaxKeyLength: 0
+        - Name: HighwayHash-128
+          Endpoint: /hash/HIGHWAY-128
+          MinKeyLength: 32
+          MaxKeyLength: 0
+        - Name: MD4
+          Endpoint: /hash/MD4
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: MD5
+          Endpoint: /hash/MD5
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA1
+          Endpoint: /hash/SHA1
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA256
+          Endpoint: /hash/SHA256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA384
+          Endpoint: /hash/SHA384
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA512
+          Endpoint: /hash/SHA512
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA512-256
+          Endpoint: /hash/SHA512-256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA3-256
+          Endpoint: /hash/SHA3-256
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA3-384
+          Endpoint: /hash/SHA3-384
+          MinKeyLength: 0
+          MaxKeyLength: 0
+        - Name: SHA3-512
+          Endpoint: /hash/SHA3-512
+          MinKeyLength: 0
+          MaxKeyLength: 0
+    HashAlgorithmName:
+      type: string
+      enum:
+        - Blake2b-256
+        - Blake2b-384
+        - Blake2b-512
+        - Blake2s-128
+        - Blake2s-256
+        - HighwayHash-64
+        - HighwayHash-128
+        - HighwayHash-256
+        - MD4
+        - MD5
+        - SHA1
+        - SHA256
+        - SHA384
+        - SHA512
+        - SHA512-256
+        - SHA3-256
+        - SHA3-384
+        - SHA3-512
+    DigestFormats:
+      description: Hash digest encoding format
+      type: string
+      enum:
+        - base32
+        - base64
+        - base64url
+        - hex
+      example: hex
+    SuccessResponseContent:
+      type: object
+      properties:
+        Digest:
+          type: string
+          description: Hash Digest in the format requested, matching DigestEnc
+        DigestEnc:
+          $ref: '#/components/schemas/DigestFormats'
+        Type:
+          $ref: '#/components/schemas/HashAlgorithmName'
+        Key:
+          type: string
+          description: Hex format key used for Hashing
+      required:
+        - Digest
+        - DigestEnc
+        - Type
+    ErrorResponseContent:
+      type: object
+      properties:
+        Error:
+          type: string
+          description: Error message
+          example: "Invalid Hex Value for parameter 'key', must provide key as query param or header 'X-Hashify-Key'"
+paths:
+  /version:
+    get:
+      summary: Get API Version
+      description: Get API Version
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: 1.0.0
+                required:
+                  - version
+  /status:
+    get:
+      summary: Status Check
+      responses:
+        '200':
+          description: Service OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hashesGenerated:
+                    type: integer
+                    format: int64
+                    example: 709695
+                    minimum: 0
+                  keysGenerated:
+                    type: integer
+                    format: int64
+                    example: 709695
+                    minimum: 0
+                  status:
+                    type: string
+                    example: OK
+                  uptime:
+                    type: string
+                    example: "72h4m46.735301621s"
+                required:
+                  - hashesGenerated
+                  - keysGenerated
+                  - status
+                  - uptime
+  /hash/{algorithm}/{digestFormat}:
+    get:
+      summary: Get Hash Digest of Input using given algorithm and digest encoding format
+      parameters:
+        - name: value
+          in: query
+          schema:
+            type: string
+          example: helloWorld
+          required: true
+        - name: key
+          in: query
+          description: Hex format key used for Hashing
+          schema:
+            type: string
+          example: 2682a011a593033ea31d753a2bf3d1d769e77bc527252329ae511aa170d41755
+        - name: algorithm
+          in: path
+          schema:
+            $ref: '#/components/schemas/HashAlgorithmName'
+          required: true
+        - name: digestFormat
+          in: path
+          schema:
+            $ref: '#/components/schemas/DigestFormats'
+          required: true
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponseContent'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseContent'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseContent'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseContent'
+  /methods:
+    get:
+      tags:
+        - default
+      summary: List Hashing Algorithms
+      description: >-
+        Retrieve list of hash options contains names, endpoints, and if key
+        needed
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json; charset=UTF-8
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HashAlgorithm'
+  /keygen/{keyLength}:
+    get:
+      tags:
+        - default
+      summary: Hash Key Generator
+      description: Generate Key of arbitrary length up to 256 bytes
+      parameters:
+        - name: keyLength
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 256
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  KeyHex:
+                    type: string
+                    description: Hex format key
+                    example: 6c7de554286cad9bd18fb09eab68423a9f1ab2b5928b60e82e3279c85e12ef8e
+                  Length:
+                    type: integer
+                    format: integer
+                    description: Length of key in bytes
+                    example: 32
+                    minimum: 1
+                    maximum: 256
+                required:
+                  - KeyHex
+                  - Length
+              example:
+                KeyHex: >-
+                  6c7de554286cad9bd18fb09eab68423a9f1ab2b5928b60e82e3279c85e12ef8e
+                Length: 32
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseContent'
+              example:
+                Error: "Invalid value for parameter 'keyLength', must be between 1 and 256"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseContent'
+              example:
+                Error: "Error generating key"
+
+
+  # /hash/md5/hex:
+  #   post:
+  #     tags:
+  #       - Examples > MD5
+  #     summary: MD5 - POST (File)
+  #     requestBody:
+  #       content:
+  #         text/plain: {}
+  #     responses:
+  #       '200':
+  #         description: Successful response
+  #         content:
+  #           application/json: {}
+  # /status:
+  #   get:
+  #     tags:
+  #       - default
+  #     summary: Status Check
+  #     description: Get API Status
+  #     responses:
+  #       '200':
+  #         description: Successful response
+  #         content:
+  #           application/json: {}
+
+
