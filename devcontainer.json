@@ -1,0 +1,12 @@
+{
+  "name": "Rust Dev Container",
+  "image": "rust:latest",
+  "extensions": [
+    "rust-lang.rust-analyzer"
+  ],
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "postCreateCommand": "rustup component add rustfmt clippy",
+  "postStartCommand": "cargo build"
+}
