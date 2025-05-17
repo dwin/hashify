@@ -6,12 +6,11 @@ LABEL app_version="0.1.0" architecture="amd64"
 
 COPY /app $GOPATH/src/github.com/dwin/hashify/app
 WORKDIR $GOPATH/src/github.com/dwin/hashify/app
-#get dependancies
-#you can also use dep
-RUN go get -d -v
+
+RUN go mod download
 
 #build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /go/bin/hashify
+RUN CGO_ENABLED=0 go build -a -o /go/bin/hashify
 
 # STEP 2 build a small image
 # start from scratch

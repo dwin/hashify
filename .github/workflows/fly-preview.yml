@@ -14,18 +14,20 @@ jobs:
 
     # Only run one deployment at a time per PR.
     concurrency:
-      group: PR-${{ github.event.number }}
+      group: pr-${{ github.event.number }}
 
     # Create a GitHub deployment environment per staging app so it shows up
     # in the pull request UI.
     # Does not cleanup the GH Environment Created
     environment:
-      name: PR-${{ github.event.number }}
+      name: pr-${{ github.event.number }}
       url: ${{ steps.deploy.outputs.url }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Deploy
         id: deploy
-        uses: superfly/fly-pr-review-apps@1.0.0
+        uses: superfly/fly-pr-review-apps@1.5.0
+        with:
+          name: pr-${{ github.event.number }}-hashify
